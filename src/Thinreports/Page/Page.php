@@ -10,7 +10,8 @@
 namespace Thinreports\Page;
 
 use Thinreports\Report;
-use Thinreports\Layout;
+use Thinreports\Item\ListArea;
+use Thinreports\Layout\Layout;
 use Thinreports\Exception;
 
 class Page extends BlankPage
@@ -18,6 +19,7 @@ class Page extends BlankPage
     private $report;
     private $layout;
     private $items = array();
+    private $break = false;
 
     /**
      * @param Report $report
@@ -34,20 +36,49 @@ class Page extends BlankPage
         $this->is_blank = false;
     }
 
+    public function getBreak()
+    {
+        return $this->break;
+    }
+
+    public function setBreak()
+    {
+        $this->break = true;
+    }
+
+    public function copy($page)
+    {
+        foreach($page->getItems() as $id => $item){
+            $copy = clone $item;
+            if($copy instanceof ListArea){
+                $copy->resetDetails();
+            }
+            $copy->setParent($this);
+            $this->items[$id] = $copy;
+        }
+    }
+
     /**
      * @param string $id
      * @return \Thinreports\Item\AbstractItem
      */
     public function item($id)
     {
-        if (array_key_exists($id, $this->items)) {
-            return $this->items[$id];
+        $index = $this->layout->getItemIndex($id);
+
+        if (array_key_exists($index, $this->items)) {
+            return $this->items[$index];
         }
 
-        $item = $this->layout->createItem($this, $id);
-        $this->items[$id] = $item;
+        $item = $this->layout->createItem($this, $index);
+        $this->items[$index] = $item;
 
         return $item;
+    }
+
+    public function list($id = 'default')
+    {
+        return $this->item($id);
     }
 
     /**
@@ -67,9 +98,6 @@ class Page extends BlankPage
     {
         $item = $this->item($id);
 
-        if (!$item->isTypeOf('block')) {
-            throw new Exception\StandardException('Unedtiable Item', $id);
-        }
         $item->setValue($value);
     }
 
@@ -97,7 +125,12 @@ class Page extends BlankPage
      */
     public function getItemIds()
     {
-        return array_keys($this->layout->getItemFormats());
+        return $this->layout->getItemIds();
+    }
+
+    public function getItems()
+    {
+        return $this->items;
     }
 
     /**
@@ -125,13 +158,27 @@ class Page extends BlankPage
      *
      * @return Thinreports\Item\AbstractItem[]
      */
-    public function getFinalizedItems()
+    public function getAllItems(int $sub_page=1)
     {
+        $count = $this->layout->getItemCount();
         $items = array();
 
-        foreach ($this->getItemIds() as $id) {
-            $items[] = $this->item($id);
+        for($index=0; $index<$count; $index++)
+        {
+            if(!isset($this->items[$index]))
+            {
+                $items[] = $this->layout->createItem($this, $index);
+            }
+            elseif($this->items[$index]->isTypeOf('list'))
+            {
+                $items = array_merge($items, $this->items[$index]->getAllItems($sub_page));
+            }
+            else
+            {
+                $items[] = $this->items[$index];
+            }
         }
+
         return $items;
     }
 }

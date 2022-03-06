@@ -15,10 +15,10 @@ namespace Thinreports\Generator\PDF;
 class Text
 {
     static private $pdf_font_style = array(
-        'bold'          => 'B',
-        'italic'        => 'I',
-        'underline'     => 'U',
-        'strikethrough' => 'D'
+        'bold'        => 'B',
+        'italic'      => 'I',
+        'underline'   => 'U',
+        'linethrough' => 'D'
     );
 
     static private $pdf_text_align = array(
@@ -29,7 +29,7 @@ class Text
 
     static private $pdf_text_valign = array(
         'top'    => 'T',
-        'center' => 'M',
+        'middle' => 'M',
         'bottom' => 'B'
     );
 
@@ -81,13 +81,15 @@ class Text
         $this->pdf->setCellHeightRatio($styles['line_height']);
 
         $overflow = $styles['overflow'];
+        $prohibited = $styles['prohibited'];
 
-        $font_family = $attrs['font_family'];
+        $font_family = $styles['font_family'];
         $font_styles = $attrs['font_style'];
-        $color       = $styles['color'];
 
-        $emulating = $this->startStyleEmulation($font_family, $font_styles, $color);
+        $emulating = $this->startStyleEmulation($font_family, $font_styles, $styles, $x, $y, $width, $height);
 
+        $this->pdf->setLastH(0);
+        $this->pdf->setSpacesRE("/(?!\\xa0)[\s\p{Z}]/u");
         $this->pdf->MultiCell(
             $width,                  // width
             $height,                 // height
@@ -98,7 +100,7 @@ class Text
             1,                       // ln
             $x,                      // x
             $y,                      // y
-            true,                    // reset height
+            false,                   // reset height
             0,                       // stretch mode
             false,                   // is html
             true,                    // autopadding
@@ -179,7 +181,7 @@ class Text
         }
 
         return array(
-            'font_size'      => $attrs['font_size'],
+            'font_size'      => Font::getFontSize($attrs['font_family'], $attrs['font_size']),
             'font_family'    => Font::getFontName($attrs['font_family']),
             'font_style'     => implode('', $font_style),
             'color'          => $color,
@@ -224,12 +226,27 @@ class Text
                 break;
         }
 
+        if (array_key_exists('word-wrap', $attrs)) {
+            $overflow = $attrs['word-wrap'];
+        } else {
+            $overflow = 'none';
+        }
+        switch ($overflow) {
+            case 'none':
+                $prohibited = false;
+                break;
+            case 'break-word':
+                $prohibited = true;
+                break;
+        }
+
         $styles = $this->buildTextStyles($attrs);
 
         $styles['overflow'] = array(
             'fit_cell'   => $fit_cell,
             'max_height' => $max_height
         );
+        $styles['prohibited'] = $prohibited;
 
         return $styles;
     }
@@ -240,22 +257,47 @@ class Text
      * @param integer[] $color
      * @return boolean
      */
-    public function startStyleEmulation($family, array $styles, array $color)
+    public function startStyleEmulation($font_family, array $font_styles, array $styles, int $x, int $y, int $width, int $height)
     {
-        $need_emulate = in_array('bold', $styles)
-                        && Font::isBuiltinUnicodeFont($family);
+        $color = $styles['color'];
+        $align = $styles['align'];
 
-        if (!$need_emulate) {
-            return false;
-        } else {
-            $this->pdf->setDrawColorArray($color);
-            $this->pdf->setTextRenderingMode($this->pdf->GetLineWidth() * 0.1);
-            return true;
+        $need_bold_emulate = in_array('bold', $font_styles)
+                        && !Font::isBuiltinUnicodeFont($font_family, 'bold');
+        $need_italic_emulate = in_array('italic', $font_styles)
+                        && !Font::isBuiltinUnicodeFont($font_family, 'italic');
+
+        if ($need_bold_emulate || $need_italic_emulate){
+            $this->pdf->StartTransform();
         }
+
+        if ($need_bold_emulate) {
+            $this->pdf->setDrawColorArray($color);
+            $this->pdf->setTextRenderingMode($this->pdf->GetLineWidth() * 0.85);
+        }
+        if ($need_italic_emulate) {
+            switch($align){
+                case 'L': // 左端 $y + $height
+                    $this->pdf->SkewX(15, $x, $y + $height);
+                    break;
+                case 'C': // 中央 $y + $height / 2
+                    $this->pdf->SkewX(15, $x, $y + $height/2);
+                    break;
+                case 'R': // 右端 $y
+                    $this->pdf->SkewX(15, $x, $y);
+                    break;
+                default: // 左端扱い
+                    $this->pdf->SkewX(15, $x, $y + $height);
+            }
+        }
+
+        if(!$need_bold_emulate && !$need_italic_emulate) return false;
+        return true;
     }
 
     public function resetStyleEmulation()
     {
+        $this->pdf->StopTransform();
         $this->pdf->setTextRenderingMode(0);
     }
 }

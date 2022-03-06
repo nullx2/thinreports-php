@@ -13,6 +13,9 @@ abstract class AbstractBlockItem extends AbstractItem
 {
     private $value = '';
 
+    private $translate_x = 0;
+    private $translate_y = 0;
+
     /**
      * @param mixed $value
      * @return $this
@@ -54,11 +57,17 @@ abstract class AbstractBlockItem extends AbstractItem
     public function getBounds()
     {
         return array(
-            'x' => $this->schema['x'],
-            'y' => $this->schema['y'],
+            'x' => $this->schema['x'] + $this->translate_x,
+            'y' => $this->schema['y'] + $this->translate_y,
             'width' => $this->schema['width'],
             'height' => $this->schema['height']
         );
+    }
+
+    public function fixBounds($translate_x, $translate_y)
+    {
+        $this->translate_x = $translate_x;
+        $this->translate_y = $translate_y;
     }
 
     /**

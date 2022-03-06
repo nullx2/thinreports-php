@@ -9,8 +9,6 @@
 
 namespace Thinreports\Item;
 
-use Thinreports\Page\Page;
-
 abstract class AbstractItem
 {
     protected $parent;
@@ -21,10 +19,10 @@ abstract class AbstractItem
     protected $style;
 
     /**
-     * @param Page $parent
+     * @param Page|Section $parent
      * @param array $schema
      */
-    public function __construct(Page $parent, array $schema)
+    public function __construct($parent, array $schema)
     {
         $this->parent = $parent;
         $this->schema = $schema;
@@ -124,7 +122,7 @@ abstract class AbstractItem
 
     public function __clone()
     {
-        $this->style = clone $this->style;
+        if($this->style != null) $this->style = clone $this->style;
     }
 
     /**
@@ -140,11 +138,16 @@ abstract class AbstractItem
     /**
      * @access private
      *
-     * @return Page
+     * @return Page|Section
      */
     public function getParent()
     {
         return $this->parent;
+    }
+
+    public function setParent($parent)
+    {
+        $this->parent = $parent;
     }
 
     /**
@@ -174,4 +177,6 @@ abstract class AbstractItem
      * @return array
      */
     abstract public function getBounds();
+
+    abstract public function fixBounds($translate_x, $translate_y);
 }

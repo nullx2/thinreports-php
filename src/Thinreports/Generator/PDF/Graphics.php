@@ -129,6 +129,37 @@ class Graphics
      * }
      * @see http://www.tcpdf.org/doc/code/classTCPDF.html
      */
+    public function drawSvgImage($filename, $x, $y, $width, $height, array $attrs = array())
+    {
+        $position = $this->buildImagePosition($attrs);
+
+        $this->pdf->ImageSVG(
+            $filename,  // image file
+            $x,         // x
+            $y,         // y
+            $width,     // box width
+            $height,    // box height
+            null,       // type
+            null,       // link
+            null,       // align
+            null,       // palign
+            0,          // border
+            $position   // fitbox
+        );
+    }
+
+    /**
+     * @param string $filename
+     * @param float|string $x
+     * @param float|string $y
+     * @param float|string $width
+     * @param float|string $height
+     * @param array $attrs {
+     *      @option string "align" optional default is "left"
+     *      @option string "valign" optional default is "top"
+     * }
+     * @see http://www.tcpdf.org/doc/code/classTCPDF.html
+     */
     public function drawImage($filename, $x, $y, $width, $height, array $attrs = array())
     {
         $position = $this->buildImagePosition($attrs);
@@ -192,16 +223,31 @@ class Graphics
         } else {
             $stroke_color = ColorParser::parse($attrs['stroke_color']);
 
-            if ($attrs['stroke_dash'] === 'none') {
-                $stroke_dash = 0;
-            } else {
-                $stroke_dash = $attrs['stroke_dash'];
+            switch($attrs['stroke_dash']){
+                case 'dashed':
+                    $stroke_dash = ($attrs['stroke_width'] * 2).','.($attrs['stroke_width'] * 2);
+                    $cap = 'butt';
+                    $join = 'miter';
+                    break;
+                case 'dotted':
+                    $stroke_dash = '0,'.($attrs['stroke_width'] * 2);
+                    $cap = 'round';
+                    $join = 'round';
+                    break;
+                case 'solid':
+                default:
+                    $stroke_dash = 0;
+                    $cap = 'butt';
+                    $join = 'miter';
+                    break;
             }
 
             $stroke_style = array(
                 'width' => $attrs['stroke_width'],
                 'color' => $stroke_color,
-                'dash'  => $stroke_dash
+                'dash'  => $stroke_dash,
+                'cap' => $cap,
+                'join' => $join,
             );
         }
 

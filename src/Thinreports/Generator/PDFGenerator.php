@@ -10,10 +10,11 @@
 namespace Thinreports\Generator;
 
 use Thinreports\Report;
-use Thinreports\Layout;
+use Thinreports\Layout\Layout;
 use Thinreports\Page\Page;
 use Thinreports\Generator\Renderer;
 use Thinreports\Generator\PDF;
+use Thinreports\Item\ListArea;
 
 /**
  * @access private
@@ -24,6 +25,8 @@ class PDFGenerator
      * @var Report
      */
     private $report;
+
+    private $doc;
 
     /**
      * @var Renderer\LayoutRenderer[]
@@ -63,6 +66,20 @@ class PDFGenerator
         foreach ($this->report->getPages() as $page) {
             if ($page->isBlank()) {
                 $this->doc->addBlankPage();
+            } elseif($page->getBreak()) {
+                $this->renderPage($page, 1);
+
+                $max_pages = 1;
+                foreach($page->getItems() as $id => $item)
+                {
+                    if(!$item instanceof ListArea) continue;
+                    if($item->getPages() > $max_pages){
+                        $max_pages = $item->getPages();
+                    }
+                }
+                for($i=2; $i<=$max_pages; $i++){
+                    $this->renderPage($page, $i);
+                }
             } else {
                 $this->renderPage($page);
             }
@@ -73,30 +90,13 @@ class PDFGenerator
     /**
      * @param Page $page
      */
-    public function renderPage(Page $page)
+    public function renderPage(Page $page, int $sub_page=1)
     {
         $layout = $page->getLayout();
 
         $this->doc->addPage($layout);
 
-        $this->renderLayout($layout);
-        $this->renderItems($page->getFinalizedItems());
-    }
-
-    /**
-     * @param Layout $layout
-     */
-    public function renderLayout(Layout $layout)
-    {
-        $layout_identifier = $layout->getIdentifier();
-
-        if (array_key_exists($layout_identifier, $this->layout_renderers)) {
-            $renderer = $this->layout_renderers[$layout_identifier];
-        } else {
-            $renderer = new Renderer\LayoutRenderer($this->doc, $layout);
-            $this->layout_renderers[$layout_identifier] = $renderer;
-        }
-        $renderer->render();
+        $this->renderItems($page->getAllItems($sub_page));
     }
 
     /**
@@ -104,7 +104,7 @@ class PDFGenerator
      */
     public function renderItems(array $items)
     {
-        foreach ($items as $item) {
+        foreach ($items as $key => $item) {
             $this->item_renderer->render($item);
         }
     }

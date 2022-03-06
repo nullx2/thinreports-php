@@ -9,7 +9,6 @@
 
 namespace Thinreports\Item;
 
-use Thinreports\Page\Page;
 use Thinreports\Item\Style\TextStyle;
 
 class PageNumberItem extends AbstractItem
@@ -18,10 +17,13 @@ class PageNumberItem extends AbstractItem
 
     private $number_format;
 
+    private $translate_x = 0;
+    private $translate_y = 0;
+
     /**
      * {@inheritdoc}
      */
-    public function __construct(Page $parent, array $schema)
+    public function __construct($parent, array $schema)
     {
         parent::__construct($parent, $schema);
 
@@ -76,12 +78,12 @@ class PageNumberItem extends AbstractItem
             return '';
         }
 
-        $page = $this->getParent();
-        $report = $page->getReport();
+        $parent = $this->getParent();
+        $report = $parent->getReport();
 
         return str_replace(
             array('{page}', '{total}'),
-            array($page->getNo(), $report->getLastPageNumber()),
+            array($parent->getNo(), $report->getLastPageNumber()),
             $format
         );
     }
@@ -102,10 +104,16 @@ class PageNumberItem extends AbstractItem
     public function getBounds()
     {
         return array(
-            'x' => $this->schema['x'],
-            'y' => $this->schema['y'],
+            'x' => $this->schema['x'] + $this->translate_x,
+            'y' => $this->schema['y'] + $this->translate_y,
             'width' => $this->schema['width'],
             'height' => $this->schema['height']
         );
+    }
+
+    public function fixBounds($translate_x, $translate_y)
+    {
+        $this->translate_x = $translate_x;
+        $this->translate_y = $translate_y;
     }
 }

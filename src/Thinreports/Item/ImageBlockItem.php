@@ -9,21 +9,21 @@
 
 namespace Thinreports\Item;
 
-use Thinreports\Page\Page;
-use Thinreports\Item\Style\BasicStyle;
+use Thinreports\Item\Style\ImageStyle;
 
 class ImageBlockItem extends AbstractBlockItem
 {
     const TYPE_NAME = 'image-block';
+    private $isSVG = false;
 
     /**
      * {@inheritdoc}
      */
-    public function __construct(Page $parent, array $schema)
+    public function __construct($parent, array $schema)
     {
         parent::__construct($parent, $schema);
 
-        $this->style = new BasicStyle($schema);
+        $this->style = new ImageStyle($schema['style']);
     }
 
     /**
@@ -40,5 +40,15 @@ class ImageBlockItem extends AbstractBlockItem
     public function getSource()
     {
         return call_user_func(array($this, 'getValue'));
+    }
+
+    public function setSVG($svg)
+    {
+        $this->isSVG = $svg;
+    }
+
+    public function getSVG()
+    {
+        return $this->isSVG;
     }
 }

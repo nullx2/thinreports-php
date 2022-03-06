@@ -9,29 +9,31 @@
 
 namespace Thinreports\Item;
 
-use Thinreports\Page\Page;
 use Thinreports\Item\Style;
 
 class BasicItem extends AbstractItem
 {
     const TYPE_NAME = 'basic';
 
+    private $translate_x = 0;
+    private $translate_y = 0;
+
     /**
      * {@inheritdoc}
      */
-    public function __construct(Page $parent, array $schema)
+    public function __construct($parent, array $schema)
     {
         parent::__construct($parent, $schema);
 
         switch (true) {
             case $this->isImage():
-                $this->style = new Style\BasicStyle($schema);
+                $this->style = new Style\GraphicStyle([]);
                 break;
             case $this->isText():
-                $this->style = new Style\TextStyle($schema);
+                $this->style = new Style\TextStyle($schema['style']);
                 break;
             default:
-                $this->style = new Style\GraphicStyle($schema);
+                $this->style = new Style\BasicStyle($schema['style']);
                 break;
         }
     }
@@ -104,28 +106,34 @@ class BasicItem extends AbstractItem
         switch (true) {
             case $this->isImage() || $this->isRect() || $this->isText():
                 return array(
-                    'x' => $schema['x'],
-                    'y' => $schema['y'],
+                    'x' => $schema['x'] + $this->translate_x,
+                    'y' => $schema['y'] + $this->translate_y,
                     'width' => $schema['width'],
                     'height' => $schema['height']
                 );
                 break;
             case $this->isEllipse():
                 return array(
-                    'cx' => $schema['cx'],
-                    'cy' => $schema['cy'],
+                    'cx' => $schema['cx'] + $this->translate_x,
+                    'cy' => $schema['cy'] + $this->translate_y,
                     'rx' => $schema['rx'],
                     'ry' => $schema['ry']
                 );
                 break;
             case $this->isLine():
                 return array(
-                    'x1' => $schema['x1'],
-                    'y1' => $schema['y1'],
-                    'x2' => $schema['x2'],
-                    'y2' => $schema['y2']
+                    'x1' => $schema['x1'] + $this->translate_x,
+                    'y1' => $schema['y1'] + $this->translate_y,
+                    'x2' => $schema['x2'] + $this->translate_x,
+                    'y2' => $schema['y2'] + $this->translate_y
                 );
                 break;
         }
+    }
+
+    public function fixBounds($translate_x, $translate_y)
+    {
+        $this->translate_x = $translate_x;
+        $this->translate_y = $translate_y;
     }
 }

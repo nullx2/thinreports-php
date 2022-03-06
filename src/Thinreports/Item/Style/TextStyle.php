@@ -22,6 +22,22 @@ class TextStyle extends BasicStyle
     );
 
     /**
+     * @param string $font
+     */
+    public function set_font_family($font)
+    {
+        $this->styles['font-family'] = $font;
+    }
+
+    /**
+     * @return string
+     */
+    public function get_font_family()
+    {
+        return $this->readStyle('font_family');
+    }
+
+    /**
      * @param string $color
      */
     public function set_color($color)

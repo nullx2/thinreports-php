@@ -35,6 +35,9 @@ class ItemRenderer extends AbstractRenderer
             case $item instanceof Item\PageNumberItem:
                 $this->renderPageNumberItem($item);
                 break;
+            case $item instanceof Item\ListArea;
+                $this->renderListArea($item);
+                break;
             default:
                 $this->renderBasicItem($item);
                 break;
@@ -59,8 +62,8 @@ class ItemRenderer extends AbstractRenderer
                 return $item->isPresent();
                 break;
             case $item instanceof Item\PageNumberItem:
-                $page = $item->getParent();
-                return $page->isCountable() && $item->isForReport();
+                $parent = $item->getParent();
+                return $parent->isCountable() && $item->isForReport();
                 break;
             default:
                 return true;
@@ -97,17 +100,17 @@ class ItemRenderer extends AbstractRenderer
      */
     public function renderTextBlockItem(Item\TextBlockItem $item)
     {
-        $format = $item->getFormat();
+        $schema = $item->getSchema();
         $bounds = $item->getBounds();
         $styles = $this->buildTextStyles($item->exportStyles());
 
         $styles['valign'] = $item->getStyle('valign');
 
-        if ($format['overflow'] !== '') {
-            $styles['overflow'] = $format['overflow'];
+        if ($schema['style']['overflow'] !== '') {
+            $styles['overflow'] = $schema['style']['overflow'];
         }
-        if ($format['line-height-ratio'] !== '') {
-            $styles['line_height'] = $format['line-height-ratio'];
+        if ($schema['style']['line-height-ratio'] !== '') {
+            $styles['line_height'] = $schema['style']['line-height-ratio'];
         }
 
         if ($item->isMultiple()) {
@@ -139,14 +142,26 @@ class ItemRenderer extends AbstractRenderer
         $bounds = $item->getBounds();
         $styles = $this->buildImageBoxItemStyles($item);
 
-        $this->doc->graphics->drawImage(
-            $item->getSource(),
-            $bounds['x'],
-            $bounds['y'],
-            $bounds['width'],
-            $bounds['height'],
-            $styles
-        );
+        if($item->getSVG())
+        {
+            $this->doc->graphics->drawSvgImage(
+                $item->getSource(),
+                $bounds['x'],
+                $bounds['y'],
+                $bounds['width'],
+                $bounds['height'],
+                $styles
+            );
+        } else {
+            $this->doc->graphics->drawImage(
+                $item->getSource(),
+                $bounds['x'],
+                $bounds['y'],
+                $bounds['width'],
+                $bounds['height'],
+                $styles
+            );
+        }
     }
 
     /**
@@ -154,7 +169,6 @@ class ItemRenderer extends AbstractRenderer
      */
     public function renderPageNumberItem(Item\PageNumberItem $item)
     {
-        $format = $item->getFormat();
         $bounds = $item->getBounds();
 
         $this->doc->text->drawText(
@@ -167,16 +181,21 @@ class ItemRenderer extends AbstractRenderer
         );
     }
 
+    public function renderListArea(Item\ListArea $list)
+    {
+        //
+    }
+
     /**
      * @param Item\BasicItem $item
      */
     public function renderImageItem(Item\BasicItem $item)
     {
+        $schema = $item->getSchema();
         $bounds = $item->getBounds();
-        $attrs  = $item->exportStyles();
 
         $this->doc->graphics->drawBase64Image(
-            $this->extractBase64Data($attrs),
+            $this->extractBase64Data($schema),
             $bounds['x'],
             $bounds['y'],
             $bounds['width'],
@@ -189,16 +208,23 @@ class ItemRenderer extends AbstractRenderer
      */
     public function renderTextItem(Item\BasicItem $item)
     {
-        $format = $item->getFormat();
+        $schema = $item->getSchema();
         $bounds = $item->getBounds();
+        $styles = $this->buildTextStyles($item->exportStyles());
+
+        $styles['valign'] = $item->getStyle('valign');
+
+        if ($schema['style']['line-height-ratio'] !== '') {
+            $styles['line_height'] = $schema['style']['line-height-ratio'];
+        }
 
         $this->doc->text->drawTextBox(
-            implode("\n", $format['text']),
+            implode("\n", $schema['texts']),
             $bounds['x'],
             $bounds['y'],
             $bounds['width'],
             $bounds['height'],
-            $this->buildTextStyles($item->exportStyles())
+            $styles
         );
     }
 
@@ -207,18 +233,19 @@ class ItemRenderer extends AbstractRenderer
      */
     public function renderRectItem(Item\BasicItem $item)
     {
+        $schema = $item->getSchema();
         $bounds = $item->getBounds();
         $attrs  = $item->exportStyles();
 
         $styles = $this->buildGraphicStyles($attrs);
-        $styles['radius'] = $attrs['rx'];
+        $styles['radius'] = $schema['border-radius'];
 
         $this->doc->graphics->drawRect(
             $bounds['x'],
             $bounds['y'],
             $bounds['width'],
             $bounds['height'],
-            $this->buildGraphicStyles($item->exportStyles())
+            $styles
         );
     }
 
@@ -260,12 +287,12 @@ class ItemRenderer extends AbstractRenderer
      */
     public function buildImageBoxItemStyles(Item\ImageBlockItem $item)
     {
-        $format = $item->getFormat();
+        $attrs  = $item->exportStyles();
 
-        $align  = $format['position-x'] ?: 'left';
-        $valign = $format['position-y'] ?: 'top';
+        $align  = $attrs['position-x'] ?: 'left';
+        $valign = $attrs['position-y'] ?: 'top';
 
-        if ($format['position-y'] === 'center') {
+        if ($attrs['position-y'] === 'center') {
             $valign = 'middle';
         }
         return array(

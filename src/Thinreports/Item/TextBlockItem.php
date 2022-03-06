@@ -9,7 +9,6 @@
 
 namespace Thinreports\Item;
 
-use Thinreports\Page\Page;
 use Thinreports\Item\Style\TextStyle;
 use Thinreports\Item\TextFormatter;
 use Thinreports\Exception;
@@ -25,7 +24,7 @@ class TextBlockItem extends AbstractBlockItem
     /**
      * {@inheritdoc}
      */
-    public function __construct(Page $parent, array $schema)
+    public function __construct($parent, array $schema)
     {
         parent::__construct($parent, $schema);
 

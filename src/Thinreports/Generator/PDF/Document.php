@@ -9,7 +9,8 @@
 
 namespace Thinreports\Generator\PDF;
 
-use Thinreports\Layout;
+use \TCPDF;
+use Thinreports\Layout\Layout;
 
 class Document
 {
@@ -45,9 +46,9 @@ class Document
      */
     public function __construct(Layout $default_layout = null)
     {
-        $this->pdf = new \TCPDF('P', 'pt', 'A4', true, 'UTF-8');
+        $this->pdf = new TCPDF('P', 'pt', 'A4', true, 'UTF-8');
 
-        $this->pdf->SetCreator('Thinreports Generator');
+        $this->pdf->SetCreator('Thinreports Generator PHP2');
         $this->pdf->SetAutoPageBreak(false);
         $this->pdf->SetMargins(0, 0, 0, true);
         $this->pdf->SetCellPadding(0);
@@ -111,10 +112,10 @@ class Document
                     $size = 'B5';
                     break;
                 case 'B4':
-                    $size = 'B4_JIS';
+                    $size = 'JIS_B4';
                     break;
                 case 'B5':
-                    $size = 'B5_JIS';
+                    $size = 'JIS_B5';
                     break;
                 default:
                     $size = $layout->getPagePaperType();

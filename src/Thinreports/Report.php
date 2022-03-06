@@ -9,7 +9,9 @@
 
 namespace Thinreports;
 
-use Thinreports\Page;
+use Thinreports\Layout\Layout;
+use Thinreports\Page\Page;
+use Thinreports\Page\BlankPage;
 use Thinreports\Generator;
 
 class Report
@@ -52,10 +54,20 @@ class Report
         $layout = $this->loadLayout($layout_filename);
         $page_number = $this->getNextPageNumber($countable);
 
-        $new_page = new Page\Page($this, $layout, $page_number, $countable);
+        $new_page = new Page($this, $layout, $page_number, $countable);
         $this->pages[] = $new_page;
 
         return $new_page;
+    }
+
+    public function copyPage(Page $page, $countable = true)
+    {
+        $page_number = $this->getNextPageNumber($countable);
+
+        $new = new Page($this, $page->getLayout(), $page_number, $countable);
+        $new->copy($page);
+        $this->pages[] = $new;
+        return $new;
     }
 
     /**
@@ -66,7 +78,7 @@ class Report
     {
         $page_number = $this->getNextPageNumber($countable);
 
-        $blank_page = new Page\BlankPage($page_number, $countable);
+        $blank_page = new BlankPage($page_number, $countable);
         $this->pages[] = $blank_page;
 
         return $blank_page;
@@ -160,7 +172,7 @@ class Report
      * @param string|null $layout_filename
      * @return Layout
      */
-    public function loadLayout($layout_filename = null)
+    private function loadLayout($layout_filename = null)
     {
         if ($layout_filename !== null) {
             return $this->buildLayout($layout_filename);
@@ -179,7 +191,7 @@ class Report
      * @param string $layout_filename
      * @return Layout
      */
-    public function buildLayout($layout_filename)
+    private function buildLayout($layout_filename)
     {
         if (!array_key_exists($layout_filename, $this->layouts)) {
             $this->layouts[$layout_filename] = Layout::loadFile($layout_filename);
